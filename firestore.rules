@@ -1,0 +1,213 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to identify the admin user
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'rohit602@gmail.com';
+    }
+
+    // Universal rule granting admin full access to everything
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+    
+    // TOP-LEVEL COLLECTIONS
+    
+    // Allow public read for collections needed on Explore page
+    match /daily_suggestions/{docId} {
+      allow read: if true;
+    }
+    
+    match /featured_stories/{docId} {
+      allow read: if true;
+    }
+
+    match /blogs/{docId} {
+      allow read: if true;
+    }
+
+    match /categories/{docId} {
+        allow read: if true;
+    }
+    
+    match /banners/{docId} {
+        allow read: if true;
+    }
+
+    match /shop/{docId} {
+      allow read: if true;
+    }
+    
+    match /products/{productId} {
+      allow read: if true;
+      
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if request.auth.uid != null;
+      }
+    }
+    
+    match /orders/{orderId} {
+      allow create: if request.auth.uid == request.resource.data.userId;
+      allow read: if request.auth.uid == resource.data.userId;
+    }
+
+    match /stories/{storyId} {
+      allow read: if true;
+      allow create, update: if request.auth.uid != null;
+
+      match /likes/{likeId} {
+        allow read: if true;
+        allow write: if request.auth.uid == likeId;
+      }
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.auth.uid != null;
+      }
+
+      match /stats/{statId} {
+        allow read: if true;
+        allow write: if request.auth.uid != null;
+      }
+    }
+
+    match /anonymous_stories/{storyId} {
+      allow read: if true;
+      allow create, update: if request.auth.uid != null;
+
+      match /likes/{likeId} {
+        allow read: if true;
+        allow write: if request.auth.uid == likeId;
+      }
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.auth.uid != null;
+      }
+
+      match /stats/{statId} {
+        allow read: if true;
+        allow write: if request.auth.uid != null;
+      }
+    }
+
+    match /direct_stories/{storyId} {
+      allow read: if true;
+      allow create, update: if request.auth.uid != null;
+
+      match /likes/{likeId} {
+        allow read: if true;
+        allow write: if request.auth.uid == likeId;
+      }
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.auth.uid != null;
+      }
+
+      match /stats/{statId} {
+        allow read: if true;
+        allow write: if request.auth.uid != null;
+      }
+    }
+    
+    match /communities/{communityId} {
+      allow read: if true;
+      allow create: if request.auth.uid != null;
+      allow update: if resource.data.createdBy == request.auth.uid;
+      
+      match /members/{memberId} {
+        allow read: if true;
+        allow create: if request.auth.uid == memberId;
+        allow delete: if request.auth.uid == memberId;
+      }
+    }
+    
+    match /reports/{reportId} {
+      allow create: if request.auth.uid != null;
+    }
+
+    match /reposts/{repostId} {
+      allow create: if request.auth.uid != null;
+    }
+
+
+    match /follow_requests/{requestId} {
+      function isSender() {
+        return request.auth.uid == request.resource.data.senderId;
+      }
+      function isReceiver() {
+        return request.auth.uid == request.resource.data.receiverId;
+      }
+      function isSenderOfExisting() {
+        return request.auth.uid == resource.data.senderId;
+      }
+      function isReceiverOfExisting() {
+        return request.auth.uid == resource.data.receiverId;
+      }
+
+      allow read: if isSenderOfExisting() || isReceiverOfExisting();
+      allow create: if isSender();
+      allow delete: if isSenderOfExisting() || isReceiverOfExisting();
+    }
+    
+    match /notifications/{notificationId} {
+      allow read: if request.auth.uid == resource.data.receiverId;
+      allow create: if request.auth.uid != null;
+      allow delete: if request.auth.uid == resource.data.receiverId || request.auth.uid == resource.data.fromUser.id;
+    }
+    
+    match /coupons/{couponId} {
+      allow read: if true;
+    }
+    
+    // USERS AND SUBCOLLECTIONS
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth.uid == userId;
+
+      match /profile/{profileId} {
+        allow read: if true;
+        allow write: if request.auth.uid == userId;
+      }
+      
+      match /followers/{followerId} {
+        allow read: if true;
+        allow create: if request.auth.uid == followerId || request.auth.uid == userId;
+        allow delete: if request.auth.uid == followerId || request.auth.uid == userId;
+      }
+
+      match /following/{followingId} {
+        allow read: if true;
+        allow create: if request.auth.uid == userId || request.auth.uid == followingId;
+        allow delete: if request.auth.uid == userId;
+      }
+      
+      match /private_stories/{storyId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      match /saved_stories/{storyId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      match /wishlist/{productId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      match /addresses/{addressId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      match /joinedCommunities/{communityId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+    }
+    
+    match /{path=**}/profile/{profileId} {
+      allow list: if request.auth.uid != null;
+    }
+  }
+}
